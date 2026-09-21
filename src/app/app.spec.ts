@@ -17,12 +17,12 @@ describe('App', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('should render the router outlet', () => {
+  it('should render the application shell', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
 
     const host = fixture.nativeElement as HTMLElement;
 
-    expect(host.querySelector('router-outlet')).not.toBeNull();
+    expect(host.querySelector('sv-shell')).not.toBeNull();
   });
 });

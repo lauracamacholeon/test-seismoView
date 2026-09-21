@@ -1,0 +1,35 @@
+:host {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  
+  .shell {
+    &__header {
+      position: relative;
+      z-index: var(--sv-z-header);
+      flex: none;
+      box-shadow: var(--mat-sys-level1);
+    }
+  
+    &__brand {
+      margin: 0;
+      font: var(--mat-sys-title-large);
+      font-weight: 600;
+    }
+  
+    &__tagline {
+      margin-inline-start: var(--sv-space-3);
+      color: var(--mat-sys-on-surface-variant);
+      font: var(--mat-sys-body-medium);
+  
+      @media (max-width: 36rem) {
+        display: none;
+      }
+    }
+  
+    &__main {
+      flex: 1;
+      min-height: 0;
+    }
+  }

@@ -1,0 +1,22 @@
+// Design tokens that Material does not provide. Colors, typography and
+// elevation come from the Material system tokens (--mat-sys-*).
+:root {
+  // Spacing scale (4px base)
+  --sv-space-1: 0.25rem;
+  --sv-space-2: 0.5rem;
+  --sv-space-3: 0.75rem;
+  --sv-space-4: 1rem;
+  --sv-space-5: 1.5rem;
+  --sv-space-6: 2rem;
+
+  // Shape
+  --sv-radius-sm: 0.5rem;
+  --sv-radius-md: 0.75rem;
+  --sv-radius-lg: 1rem;
+
+  // Layout
+  --sv-sidebar-width: 25rem;
+
+  // Stacking
+  --sv-z-header: 10;
+}
