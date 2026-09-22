@@ -1,0 +1,26 @@
+<article
+  class="card"
+  [class.card--selected]="selected()"
+  tabindex="0"
+  role="button"
+  [attr.aria-pressed]="selected()"
+  (click)="onSelect()"
+  (keydown.enter)="onSelect()"
+  (mouseenter)="onMouseEnter()"
+  (mouseleave)="onMouseLeave()"
+>
+  <span class="card__magnitude">{{ earthquake().magnitude.toFixed(1) }}</span>
+
+  <div class="card__details">
+    <p class="card__place">{{ earthquake().place }}</p>
+    <p class="card__meta">
+      <span>{{ relativeTime() }}</span>
+      @if (earthquake().felt !== null) {
+        <span>· felt by {{ earthquake().felt }}</span>
+      }
+      @if (earthquake().tsunami) {
+        <span class="card__tsunami">· tsunami alert</span>
+      }
+    </p>
+  </div>
+</article>
