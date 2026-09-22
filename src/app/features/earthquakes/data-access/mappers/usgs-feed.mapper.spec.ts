@@ -20,6 +20,7 @@ function createFeature(
       felt: 12,
       sig: 416,
       alert: 'green',
+      type: 'earthquake',
       url: 'https://earthquake.usgs.gov/earthquakes/eventpage/us7000abcd',
     },
     geometry: { type: 'Point', coordinates: [-70.5, -33.25, 35.4] },
@@ -101,18 +102,22 @@ describe('parseUsgsFeed', () => {
     it('should return an empty list for a feed without features', () => {
       expect(parseUsgsFeed(createFeed())).toEqual([]);
     });
+
+    it.each(['mb', 'mww', 'mw', 'ml', 'mwr', 'ms_vx'])(
+      'should accept the real-world magnitude type %s',
+      (magType) => {
+        const earthquake = parseSingle(withProperties({ magType }));
+
+        expect(earthquake.magnitudeType).toBe(magType);
+      },
+    );
   });
 
   describe('optional and unexpected values', () => {
     it('should use null for missing optional values', () => {
-      const feature = withProperties({
-        magType: null,
-        felt: null,
-        alert: null,
-        url: null,
-      });
-
-      const earthquake = parseSingle(feature);
+      const earthquake = parseSingle(
+        withProperties({ magType: null, felt: null, alert: null, url: null }),
+      );
 
       expect(earthquake).toMatchObject({
         magnitudeType: null,
@@ -170,6 +175,46 @@ describe('parseUsgsFeed', () => {
       const earthquake = parseSingle(withProperties({ sig: null }));
 
       expect(earthquake.significance).toBe(0);
+    });
+  });
+
+  describe('features that are not earthquakes', () => {
+    it.each(['landslide', 'quarry blast', 'explosion', 'ice quake', 'other'])(
+      'should skip a feature whose event type is %s',
+      (type) => {
+        expect(parseUsgsFeed(createFeed(withProperties({ type })))).toEqual([]);
+      },
+    );
+
+    it('should reproduce the real M5.2 landslide event from the USGS feed', () => {
+      const landslide = createFeature({
+        id: 'us7000tbwb',
+        properties: {
+          mag: 5.2,
+          place: '55 km NW of Kodāri̇̄, Nepal',
+          time: 1_787_712_730_000,
+          type: 'landslide',
+          magType: 'ms_vx',
+          status: 'reviewed',
+          tsunami: 0,
+          sig: 601,
+        },
+        geometry: { type: 'Point', coordinates: [85.515, 28.271, 0] },
+      });
+
+      expect(parseUsgsFeed(createFeed(landslide))).toEqual([]);
+    });
+
+    it('should keep the valid earthquakes when a landslide is mixed into the same feed', () => {
+      const feed = createFeed(
+        createFeature({ id: 'quake-1' }),
+        withProperties({ type: 'landslide' }),
+        createFeature({ id: 'quake-2' }),
+      );
+
+      const ids = parseUsgsFeed(feed).map((earthquake) => earthquake.id);
+
+      expect(ids).toEqual(['quake-1', 'quake-2']);
     });
   });
 

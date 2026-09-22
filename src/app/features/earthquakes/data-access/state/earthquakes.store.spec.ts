@@ -29,7 +29,7 @@ const TEST_CONFIG: AppConfig = {
 function createFeature(id: string, magnitude: number, time: number): unknown {
   return {
     id,
-    properties: { mag: magnitude, time, place: `Place of ${id}` },
+    properties: { mag: magnitude, time, place: `Place of ${id}`, type: 'earthquake' },
     geometry: { coordinates: [10, 20, 30] },
   };
 }
