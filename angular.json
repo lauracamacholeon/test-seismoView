@@ -3,8 +3,7 @@
   "version": 1,
   "cli": {
     "packageManager": "npm",
-    "schematicCollections": ["angular-eslint"],
-    "analytics": false
+    "schematicCollections": ["angular-eslint"]
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -78,6 +77,7 @@
               "src/app/app.config.ts",
               "src/app/**/*.routes.ts"
             ],
+            "isolate": true,
             "coverageReporters": ["text-summary", "html", "lcov"],
             "coverageThresholds": {
               "statements": 85,
