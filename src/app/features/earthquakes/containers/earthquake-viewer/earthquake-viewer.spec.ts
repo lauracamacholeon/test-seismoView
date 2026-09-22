@@ -5,9 +5,12 @@ import { type MockStore, provideMockStore } from '@ngrx/store/testing';
 import { EarthquakesPageActions } from '@features/earthquakes/data-access/state/earthquakes.actions';
 import {
   selectError,
+  selectFilteredEarthquakes,
+  selectSelection,
   selectStatus,
   selectTotalCount,
 } from '@features/earthquakes/data-access/state/earthquakes.selectors';
+import { MAP_FACTORY } from '@features/earthquakes/map/map-adapter.token';
 
 import { EarthquakeViewer } from './earthquake-viewer';
 
@@ -24,11 +27,19 @@ describe('EarthquakeViewer', () => {
     TestBed.configureTestingModule({
       imports: [EarthquakeViewer],
       providers: [
+        // EarthquakeMap, rendered inside this component, needs its own map
+        // and never touches WebGL in tests, so a fake factory stands in.
+        {
+          provide: MAP_FACTORY,
+          useValue: () => ({ on: () => undefined, remove: () => undefined }),
+        },
         provideMockStore({
           selectors: [
             { selector: selectStatus, value: 'loaded' },
             { selector: selectError, value: null },
             { selector: selectTotalCount, value: 0 },
+            { selector: selectFilteredEarthquakes, value: [] },
+            { selector: selectSelection, value: null },
           ],
         }),
       ],
@@ -46,6 +57,12 @@ describe('EarthquakeViewer', () => {
     const map = render().querySelector('section');
 
     expect(map?.getAttribute('aria-label')).toBe('Earthquake map');
+  });
+
+  it('should render the earthquake map inside the map region', () => {
+    const map = render().querySelector('section');
+
+    expect(map?.querySelector('sv-earthquake-map')).not.toBeNull();
   });
 
   it('should ask for the earthquakes as soon as it is created', () => {

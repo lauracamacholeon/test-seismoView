@@ -7,9 +7,11 @@ import {
   selectStatus,
   selectTotalCount,
 } from '@features/earthquakes/data-access/state/earthquakes.selectors';
+import { EarthquakeMap } from '@features/earthquakes/map/earthquake-map/earthquake-map';
 
 @Component({
   selector: 'sv-earthquake-viewer',
+  imports: [EarthquakeMap],
   templateUrl: './earthquake-viewer.html',
   styleUrl: './earthquake-viewer.scss',
 })
