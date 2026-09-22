@@ -1,7 +1,18 @@
 import { type Provider } from '@angular/core';
-import { Map as MapLibreMap } from 'maplibre-gl';
+import { Map as MapLibreMap, setWorkerUrl } from 'maplibre-gl';
 
 import { MAP_FACTORY } from './map-adapter.token';
+
+// MapLibre v6 loads its rendering worker from a URL rather than through
+// the bundler's module graph, and neither Vite (dev server) nor esbuild
+// (production) resolves that URL correctly on their own: the map mounts,
+// the style loads, but no source ever requests a single tile. The fix is
+// to serve the worker (and the sibling chunk it imports internally) as a
+// plain static file, copied into public/ by
+// scripts/copy-maplibre-worker.mjs before every `npm start` and
+// `npm run build`, and point MapLibre at it explicitly, once, before any
+// map is created.
+setWorkerUrl('/maplibre-gl-worker.mjs');
 
 /**
  * Real MAP_FACTORY implementation: builds an actual MapLibre map. This is

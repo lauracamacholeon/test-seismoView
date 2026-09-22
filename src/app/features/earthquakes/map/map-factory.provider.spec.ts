@@ -11,6 +11,7 @@ vi.mock('maplibre-gl', () => ({
   Map: function fakeMap(this: unknown, options: unknown) {
     return mapConstructorSpy(options);
   },
+  setWorkerUrl: vi.fn(),
 }));
 
 describe('mapFactoryProvider', () => {

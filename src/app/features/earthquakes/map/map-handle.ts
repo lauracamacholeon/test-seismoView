@@ -17,6 +17,7 @@ export interface MapFeatureEvent {
 
 export interface MapHandle {
   on(event: 'load', handler: () => void): void;
+  on(event: 'error', handler: (event: { error: Error }) => void): void;
   on(
     event: 'click' | 'mousemove' | 'mouseleave',
     layerId: string,
@@ -31,5 +32,6 @@ export interface MapHandle {
   setFeatureState(feature: { source: string; id: string }, state: Record<string, unknown>): void;
   removeFeatureState(feature: { source: string; id: string }, key?: string): void;
   flyTo(options: { center: readonly [number, number]; zoom: number }): void;
+  resize(): void;
   remove(): void;
 }

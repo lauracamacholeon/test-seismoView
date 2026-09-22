@@ -36,6 +36,7 @@ function createFakeMap() {
   const setFeatureState = vi.fn();
   const removeFeatureState = vi.fn();
   const flyTo = vi.fn();
+  const resize = vi.fn();
   const remove = vi.fn();
   const on = vi.fn((event: string, layerOrHandler: unknown, maybeHandler?: unknown) => {
     const key = typeof layerOrHandler === 'string' ? `${event}:${layerOrHandler}` : event;
@@ -51,6 +52,7 @@ function createFakeMap() {
     setFeatureState,
     removeFeatureState,
     flyTo,
+    resize,
     remove,
   } as MapHandle;
 
@@ -62,6 +64,7 @@ function createFakeMap() {
     addLayer,
     setFeatureState,
     flyTo,
+    resize,
     /** Simulates MapLibre firing the 'load' event once the style is ready. */
     fireLoad: () => handlers.get('load')?.(undefined as never),
     fireClick: (event: unknown) => handlers.get(`click:${EARTHQUAKES_LAYER_ID}`)?.(event as never),
@@ -108,6 +111,39 @@ describe('EarthquakeMap', () => {
     expect(fake.mapFactory).toHaveBeenCalledWith(
       expect.objectContaining({ style: '/style.json', center: [0, 0], zoom: 1 }),
     );
+  });
+
+  it('should resize the map once it loads, in case the container was measured at 0x0 earlier', () => {
+    createComponent();
+
+    fake.fireLoad();
+
+    expect(fake.resize).toHaveBeenCalled();
+  });
+
+  it('should resize the map again whenever its container is resized later', () => {
+    let observerCallback: (() => void) | undefined;
+    const observe = vi.fn();
+
+    // A plain function, not a vi.fn wrapping an arrow: ResizeObserver is
+    // constructed with `new`, and mocks built from arrow implementations
+    // are not reliably constructable.
+    function FakeResizeObserver(this: unknown, callback: () => void) {
+      observerCallback = callback;
+      return { observe, disconnect: vi.fn() };
+    }
+    vi.stubGlobal('ResizeObserver', FakeResizeObserver);
+
+    createComponent();
+    fake.fireLoad();
+    fake.resize.mockClear();
+
+    observerCallback?.();
+
+    expect(observe).toHaveBeenCalled();
+    expect(fake.resize).toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
   });
 
   it('should add the earthquakes source and layer once the map loads', () => {

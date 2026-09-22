@@ -30,7 +30,7 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.scss"]
+            "styles": ["src/styles.scss", "maplibre-gl/dist/maplibre-gl.css"]
           },
           "configurations": {
             "production": {
@@ -58,6 +58,11 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "prebundle": {
+              "exclude": ["maplibre-gl"]
+            }
+          },
           "configurations": {
             "production": {
               "buildTarget": "seismo-view:build:production"

@@ -1,6 +1,7 @@
 import {
   afterNextRender,
   Component,
+  DestroyRef,
   effect,
   inject,
   signal,
@@ -41,6 +42,7 @@ export class EarthquakeMap {
   private readonly config = inject(APP_CONFIG);
   private readonly createMap = inject(MAP_FACTORY);
 
+  private readonly destroyRef = inject(DestroyRef);
   private readonly container = viewChild.required<ElementRef<HTMLElement>>('container');
   private readonly earthquakes = this.store.selectSignal(selectFilteredEarthquakes);
   private readonly selection = this.store.selectSignal(selectSelection);
@@ -59,6 +61,9 @@ export class EarthquakeMap {
     });
     effect(() => {
       this.syncSelection();
+    });
+    this.destroyRef.onDestroy(() => {
+      this.map?.remove();
     });
   }
 
@@ -88,10 +93,69 @@ export class EarthquakeMap {
       map.on('mouseleave', EARTHQUAKES_LAYER_ID, () => {
         this.onMouseLeave();
       });
+      // The map's viewport is computed from the container's size at the
+      // moment `load` fires. If Angular's layout hadn't fully settled when
+      // the map was constructed, MapLibre may have measured a 0-size
+      // container and concluded no tiles are visible, so it never requests
+      // any: only the style and its metadata load, and the canvas shows
+      // just the background color. Forcing a resize here, once layout has
+      // had a chance to settle, makes it recompute against the real size.
+      map.resize();
       this.mapReady.set(true);
     });
 
+    // MapLibre swallows most internal failures (a bad source, a missing
+    // sprite, a worker that never came up) unless something listens for
+    // this event, so a real problem would otherwise look identical to "it
+    // just hasn't loaded yet".
+    map.on('error', (event) => {
+      console.error('MapLibre error', event.error);
+    });
+
+    // TEMPORARY diagnostic logging, to see exactly how far map init gets.
+    const container = this.container().nativeElement;
+    console.warn('[map-debug] container size at creation', {
+      width: container.clientWidth,
+      height: container.clientHeight,
+    });
+    const debugOn = map as unknown as {
+      on(event: string, handler: (event?: unknown) => void): void;
+    };
+    debugOn.on('styledata', () => {
+      console.warn('[map-debug] styledata');
+    });
+    debugOn.on('sourcedata', (event) => {
+      console.warn('[map-debug] sourcedata', event);
+    });
+    debugOn.on('idle', () => {
+      console.warn('[map-debug] idle');
+    });
+    debugOn.on('render', () => {
+      console.warn('[map-debug] render');
+    });
+
     this.map = map;
+    this.observeContainerResize(map);
+  }
+
+  /**
+   * Keeps the map's viewport in sync with its container's actual size,
+   * beyond the one-time resize() above: a sidebar collapsing, a window
+   * resize, or any later layout change would otherwise leave the map
+   * rendering at a stale size.
+   */
+  private observeContainerResize(map: MapHandle): void {
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    const observer = new ResizeObserver(() => {
+      map.resize();
+    });
+    observer.observe(this.container().nativeElement);
+    this.destroyRef.onDestroy(() => {
+      observer.disconnect();
+    });
   }
 
   /** Pushes the currently filtered earthquakes into the map's GeoJSON source. */
