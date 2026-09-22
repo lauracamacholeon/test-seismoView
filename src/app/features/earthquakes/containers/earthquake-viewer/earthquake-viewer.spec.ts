@@ -15,7 +15,7 @@ import {
   selectTimeBounds,
   selectTotalCount,
 } from '@features/earthquakes/data-access/state/earthquakes.selectors';
-import { MAP_FACTORY } from '@features/earthquakes/map/map-adapter.token';
+import { MAP_FACTORY, POPUP_FACTORY } from '@features/earthquakes/map/map-adapter.token';
 
 import { EarthquakeViewer } from './earthquake-viewer';
 
@@ -37,6 +37,15 @@ describe('EarthquakeViewer', () => {
         {
           provide: MAP_FACTORY,
           useValue: () => ({ on: () => undefined, remove: () => undefined }),
+        },
+        {
+          provide: POPUP_FACTORY,
+          useValue: () => ({
+            setLngLat: () => ({}) as never,
+            setHTML: () => ({}) as never,
+            addTo: () => ({}) as never,
+            remove: () => ({}) as never,
+          }),
         },
         provideMockStore({
           selectors: [

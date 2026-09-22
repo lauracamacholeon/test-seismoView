@@ -9,10 +9,19 @@ import { type EarthquakeFeatureCollection } from './earthquakes-geojson';
 export interface MapFeature {
   readonly id?: string | number;
   readonly properties: Record<string, unknown>;
+  readonly geometry?: { readonly type: string; readonly coordinates: readonly number[] };
 }
 
 export interface MapFeatureEvent {
   readonly features?: readonly MapFeature[];
+}
+
+/** The small slice of MapLibre's Popup API this app uses, kept narrow for the same reason as MapHandle. */
+export interface PopupHandle {
+  setLngLat(coordinates: readonly [number, number]): PopupHandle;
+  setHTML(html: string): PopupHandle;
+  addTo(map: MapHandle): PopupHandle;
+  remove(): PopupHandle;
 }
 
 export interface MapHandle {

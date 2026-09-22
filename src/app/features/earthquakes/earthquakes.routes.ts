@@ -4,7 +4,7 @@ import { provideState } from '@ngrx/store';
 
 import * as earthquakesEffects from './data-access/state/earthquakes.effects';
 import { earthquakesFeature } from './data-access/state/earthquakes.reducer';
-import { mapFactoryProvider } from './map/map-factory.provider';
+import { mapFactoryProvider, popupFactoryProvider } from './map/map-factory.provider';
 
 export const EARTHQUAKES_ROUTES: Routes = [
   {
@@ -13,6 +13,7 @@ export const EARTHQUAKES_ROUTES: Routes = [
       provideState(earthquakesFeature),
       provideEffects(earthquakesEffects),
       mapFactoryProvider,
+      popupFactoryProvider,
     ],
     loadComponent: () =>
       import('./containers/earthquake-viewer/earthquake-viewer').then((m) => m.EarthquakeViewer),

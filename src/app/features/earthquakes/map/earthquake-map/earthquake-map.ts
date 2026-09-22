@@ -11,6 +11,7 @@ import {
 import { Store } from '@ngrx/store';
 
 import { APP_CONFIG } from '@core/config/app-config';
+import { escapeHtml } from '@shared/utils/escape-html';
 
 import { toEarthquakesGeoJson } from '../earthquakes-geojson';
 import {
@@ -18,8 +19,9 @@ import {
   EARTHQUAKES_LAYER_ID,
   EARTHQUAKES_SOURCE_ID,
 } from '../earthquakes-layers';
-import { MAP_FACTORY } from '../map-adapter.token';
-import { type MapHandle } from '../map-handle';
+import { MAP_FACTORY, POPUP_FACTORY } from '../map-adapter.token';
+import { type MapHandle, type PopupHandle } from '../map-handle';
+import { type Earthquake } from '@features/earthquakes/data-access/models/earthquake.model';
 import { EarthquakesPageActions } from '@features/earthquakes/data-access/state/earthquakes.actions';
 import {
   selectFilteredEarthquakes,
@@ -35,8 +37,9 @@ import {
  * Hover and selection are both driven by the store, not by local component
  * state: a mouse move here only dispatches an action, the same as a hover
  * on a list card does. A single effect then mirrors whatever the store
- * says onto feature-state, regardless of which side triggered it. That is
- * what makes the highlight work in both directions.
+ * says onto feature-state (and the hover tooltip) regardless of which side
+ * triggered it. That is what makes both the highlight and the tooltip work
+ * the same way whether the hover started on the map or on a list card.
  */
 @Component({
   imports: [],
@@ -48,6 +51,7 @@ export class EarthquakeMap {
   private readonly store = inject(Store);
   private readonly config = inject(APP_CONFIG);
   private readonly createMap = inject(MAP_FACTORY);
+  private readonly createPopup = inject(POPUP_FACTORY);
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly container = viewChild.required<ElementRef<HTMLElement>>('container');
@@ -56,6 +60,7 @@ export class EarthquakeMap {
   private readonly hoveredId = this.store.selectSignal(selectHoveredId);
 
   private map: MapHandle | null = null;
+  private popup: PopupHandle | null = null;
   private readonly mapReady = signal(false);
   private selectedId: string | null = null;
   private hoveredFeatureId: string | null = null;
@@ -74,6 +79,7 @@ export class EarthquakeMap {
       this.syncHover();
     });
     this.destroyRef.onDestroy(() => {
+      this.popup?.remove();
       this.map?.remove();
     });
   }
@@ -124,6 +130,7 @@ export class EarthquakeMap {
     });
 
     this.map = map;
+    this.popup = this.createPopup();
     this.observeContainerResize(map);
   }
 
@@ -197,9 +204,10 @@ export class EarthquakeMap {
   }
 
   /**
-   * Mirrors the store's hovered id onto feature-state. Whether the hover
-   * started on a map point or a list card, this is the only place that
-   * ever calls setFeatureState for it, so both directions stay consistent.
+   * Mirrors the store's hovered id onto feature-state and the tooltip.
+   * Whether the hover started on a map point or a list card, this is the
+   * only place that ever touches setFeatureState or the popup for it, so
+   * both directions stay consistent.
    */
   private syncHover(): void {
     const hoveredId = this.hoveredId();
@@ -215,9 +223,25 @@ export class EarthquakeMap {
     }
 
     this.hoveredFeatureId = hoveredId;
-    if (hoveredId !== null) {
-      this.map.setFeatureState({ source: EARTHQUAKES_SOURCE_ID, id: hoveredId }, { hovered: true });
+
+    if (hoveredId === null) {
+      this.popup?.remove();
+      return;
     }
+
+    this.map.setFeatureState({ source: EARTHQUAKES_SOURCE_ID, id: hoveredId }, { hovered: true });
+
+    const earthquake = this.earthquakes().find((candidate) => candidate.id === hoveredId);
+    if (earthquake) {
+      this.popup
+        ?.setLngLat([earthquake.longitude, earthquake.latitude])
+        .setHTML(this.popupContent(earthquake))
+        .addTo(this.map);
+    }
+  }
+
+  private popupContent(earthquake: Earthquake): string {
+    return `<strong>M${earthquake.magnitude.toFixed(1)}</strong> · ${escapeHtml(earthquake.place)}`;
   }
 
   private onClick(event: { features?: readonly { properties: Record<string, unknown> }[] }): void {

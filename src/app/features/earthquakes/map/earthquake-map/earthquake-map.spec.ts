@@ -12,9 +12,9 @@ import {
 import { createEarthquake } from '@features/earthquakes/data-access/testing/earthquake.factory';
 
 import { EARTHQUAKES_LAYER_ID, EARTHQUAKES_SOURCE_ID } from '../earthquakes-layers';
-import { MAP_FACTORY } from '../map-adapter.token';
+import { MAP_FACTORY, POPUP_FACTORY } from '../map-adapter.token';
 import { type EarthquakeFeatureCollection } from '../earthquakes-geojson';
-import { type MapHandle } from '../map-handle';
+import { type MapHandle, type PopupHandle } from '../map-handle';
 import { EarthquakeMap } from './earthquake-map';
 
 const TEST_CONFIG: AppConfig = {
@@ -75,12 +75,42 @@ function createFakeMap() {
   };
 }
 
+/** A fake, chainable PopupHandle, matching MapLibre's real fluent Popup API. */
+function createFakePopup() {
+  const setLngLat = vi.fn();
+  const setHTML = vi.fn();
+  const addTo = vi.fn();
+  const remove = vi.fn();
+
+  const popup: PopupHandle = {
+    setLngLat: (...args) => {
+      setLngLat(...args);
+      return popup;
+    },
+    setHTML: (...args) => {
+      setHTML(...args);
+      return popup;
+    },
+    addTo: (...args) => {
+      addTo(...args);
+      return popup;
+    },
+    remove: () => {
+      remove();
+      return popup;
+    },
+  };
+
+  return { popup, popupFactory: vi.fn(() => popup), setLngLat, setHTML, addTo, remove };
+}
+
 describe('EarthquakeMap', () => {
   const first = createEarthquake({ id: 'first', longitude: 10, latitude: 20 });
   const second = createEarthquake({ id: 'second', longitude: -10, latitude: -20 });
 
   let store: Store;
   let fake: ReturnType<typeof createFakeMap>;
+  let fakePopup: ReturnType<typeof createFakePopup>;
 
   function createComponent() {
     const fixture = TestBed.createComponent(EarthquakeMap);
@@ -90,11 +120,13 @@ describe('EarthquakeMap', () => {
 
   beforeEach(() => {
     fake = createFakeMap();
+    fakePopup = createFakePopup();
     TestBed.configureTestingModule({
       imports: [EarthquakeMap],
       providers: [
         { provide: APP_CONFIG, useValue: TEST_CONFIG },
         { provide: MAP_FACTORY, useValue: fake.mapFactory },
+        { provide: POPUP_FACTORY, useValue: fakePopup.popupFactory },
         provideMockStore({
           selectors: [
             { selector: selectFilteredEarthquakes, value: [first, second] },
@@ -270,6 +302,67 @@ describe('EarthquakeMap', () => {
       { source: EARTHQUAKES_SOURCE_ID, id: 'first' },
       { hovered: false },
     );
+  });
+
+  it("should show a tooltip at the hovered earthquake's coordinates, however the hover started", () => {
+    const mockStore = TestBed.inject(MockStore);
+    createComponent();
+    fake.fireLoad();
+
+    mockStore.overrideSelector(selectHoveredId, 'first');
+    mockStore.refreshState();
+    TestBed.tick();
+
+    expect(fakePopup.setLngLat).toHaveBeenCalledWith([10, 20]);
+    expect(fakePopup.setHTML).toHaveBeenCalledWith(expect.stringContaining(first.place));
+    expect(fakePopup.addTo).toHaveBeenCalledWith(fake.map);
+  });
+
+  it('should include the magnitude in the tooltip', () => {
+    const mockStore = TestBed.inject(MockStore);
+    createComponent();
+    fake.fireLoad();
+
+    mockStore.overrideSelector(selectHoveredId, 'first');
+    mockStore.refreshState();
+    TestBed.tick();
+
+    const [html] = fakePopup.setHTML.mock.calls[0] as [string];
+
+    expect(html).toContain(`M${first.magnitude.toFixed(1)}`);
+  });
+
+  it('should escape the place name in the tooltip', () => {
+    const mockStore = TestBed.inject(MockStore);
+    mockStore.overrideSelector(selectFilteredEarthquakes, [
+      createEarthquake({ id: 'unsafe', place: '<b>Somewhere</b>' }),
+    ]);
+    createComponent();
+    fake.fireLoad();
+
+    mockStore.overrideSelector(selectHoveredId, 'unsafe');
+    mockStore.refreshState();
+    TestBed.tick();
+
+    const [html] = fakePopup.setHTML.mock.calls[0] as [string];
+
+    expect(html).not.toContain('<b>Somewhere</b>');
+    expect(html).toContain('&lt;b&gt;');
+  });
+
+  it('should remove the tooltip once nothing is hovered', () => {
+    const mockStore = TestBed.inject(MockStore);
+    createComponent();
+    fake.fireLoad();
+    mockStore.overrideSelector(selectHoveredId, 'first');
+    mockStore.refreshState();
+    TestBed.tick();
+
+    mockStore.overrideSelector(selectHoveredId, null);
+    mockStore.refreshState();
+    TestBed.tick();
+
+    expect(fakePopup.remove).toHaveBeenCalled();
   });
 
   it('should mark the selected earthquake as selected once the map is ready', () => {

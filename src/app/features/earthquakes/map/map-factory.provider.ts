@@ -1,7 +1,7 @@
 import { type Provider } from '@angular/core';
-import { Map as MapLibreMap, setWorkerUrl } from 'maplibre-gl';
+import { Map as MapLibreMap, Popup, setWorkerUrl } from 'maplibre-gl';
 
-import { MAP_FACTORY } from './map-adapter.token';
+import { MAP_FACTORY, POPUP_FACTORY } from './map-adapter.token';
 
 // MapLibre v6 loads its rendering worker from a URL rather than through
 // the bundler's module graph, and neither Vite (dev server) nor esbuild
@@ -24,4 +24,15 @@ setWorkerUrl('/maplibre-gl-worker.mjs');
 export const mapFactoryProvider: Provider = {
   provide: MAP_FACTORY,
   useValue: (options: ConstructorParameters<typeof MapLibreMap>[0]) => new MapLibreMap(options),
+};
+
+/**
+ * Real POPUP_FACTORY implementation, right alongside mapFactoryProvider
+ * since it comes from the same library import. `closeButton: false` and
+ * `closeOnClick: false` because this popup is shown and hidden entirely by
+ * the hover effect, not by the user clicking things on it.
+ */
+export const popupFactoryProvider: Provider = {
+  provide: POPUP_FACTORY,
+  useValue: () => new Popup({ closeButton: false, closeOnClick: false, offset: 12 }),
 };
