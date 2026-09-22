@@ -6,6 +6,7 @@ import { APP_CONFIG, type AppConfig } from '@core/config/app-config';
 import { EarthquakesPageActions } from '@features/earthquakes/data-access/state/earthquakes.actions';
 import {
   selectFilteredEarthquakes,
+  selectHoveredId,
   selectSelection,
 } from '@features/earthquakes/data-access/state/earthquakes.selectors';
 import { createEarthquake } from '@features/earthquakes/data-access/testing/earthquake.factory';
@@ -98,6 +99,7 @@ describe('EarthquakeMap', () => {
           selectors: [
             { selector: selectFilteredEarthquakes, value: [first, second] },
             { selector: selectSelection, value: null },
+            { selector: selectHoveredId, value: null },
           ],
         }),
       ],
@@ -187,48 +189,87 @@ describe('EarthquakeMap', () => {
     );
   });
 
-  it('should mark a feature as hovered and dispatch earthquakeHovered on mouse move', () => {
+  it('should dispatch earthquakeHovered on mouse move, without touching feature-state directly', () => {
     const dispatch = vi.spyOn(store, 'dispatch');
     createComponent();
     fake.fireLoad();
 
     fake.fireMouseMove({ features: [{ properties: { id: 'first' } }] });
+
+    expect(dispatch).toHaveBeenCalledWith(
+      EarthquakesPageActions.earthquakeHovered({ id: 'first' }),
+    );
+    // Feature-state is only ever set by the store->map sync effect (tested
+    // below), never directly from the mouse handler: that is what makes a
+    // hover started on a list card work the same way as one started here.
+    expect(fake.setFeatureState).not.toHaveBeenCalled();
+  });
+
+  it('should dispatch a null id on mouse leave', () => {
+    const dispatch = vi.spyOn(store, 'dispatch');
+    createComponent();
+    fake.fireLoad();
+
+    fake.fireMouseLeave();
+
+    expect(dispatch).toHaveBeenCalledWith(EarthquakesPageActions.earthquakeHovered({ id: null }));
+  });
+
+  it("should mirror the store's hovered id onto feature-state, however the hover started", () => {
+    const mockStore = TestBed.inject(MockStore);
+    createComponent();
+    fake.fireLoad();
+
+    // No mouse event on the map at all: this is exactly what happens when
+    // the hover starts on a list card instead.
+    mockStore.overrideSelector(selectHoveredId, 'first');
+    mockStore.refreshState();
+    TestBed.tick();
 
     expect(fake.setFeatureState).toHaveBeenCalledWith(
       { source: EARTHQUAKES_SOURCE_ID, id: 'first' },
       { hovered: true },
     );
-    expect(dispatch).toHaveBeenCalledWith(
-      EarthquakesPageActions.earthquakeHovered({ id: 'first' }),
-    );
   });
 
-  it('should clear the previous hover before marking a new one', () => {
+  it('should clear the previously hovered feature when the hovered id changes', () => {
+    const mockStore = TestBed.inject(MockStore);
     createComponent();
     fake.fireLoad();
+    mockStore.overrideSelector(selectHoveredId, 'first');
+    mockStore.refreshState();
+    TestBed.tick();
 
-    fake.fireMouseMove({ features: [{ properties: { id: 'first' } }] });
-    fake.fireMouseMove({ features: [{ properties: { id: 'second' } }] });
+    mockStore.overrideSelector(selectHoveredId, 'second');
+    mockStore.refreshState();
+    TestBed.tick();
 
     expect(fake.setFeatureState).toHaveBeenCalledWith(
       { source: EARTHQUAKES_SOURCE_ID, id: 'first' },
       { hovered: false },
     );
+    expect(fake.setFeatureState).toHaveBeenCalledWith(
+      { source: EARTHQUAKES_SOURCE_ID, id: 'second' },
+      { hovered: true },
+    );
   });
 
-  it('should clear the hover and dispatch a null id on mouse leave', () => {
-    const dispatch = vi.spyOn(store, 'dispatch');
+  it('should clear the hovered feature when the hovered id goes back to null', () => {
+    const mockStore = TestBed.inject(MockStore);
     createComponent();
     fake.fireLoad();
-    fake.fireMouseMove({ features: [{ properties: { id: 'first' } }] });
+    mockStore.overrideSelector(selectHoveredId, 'first');
+    mockStore.refreshState();
+    TestBed.tick();
 
-    fake.fireMouseLeave();
+    mockStore.overrideSelector(selectHoveredId, null);
+    mockStore.refreshState();
+    TestBed.tick();
 
     expect(fake.setFeatureState).toHaveBeenCalledWith(
       { source: EARTHQUAKES_SOURCE_ID, id: 'first' },
       { hovered: false },
     );
-    expect(dispatch).toHaveBeenCalledWith(EarthquakesPageActions.earthquakeHovered({ id: null }));
   });
 
   it('should mark the selected earthquake as selected once the map is ready', () => {

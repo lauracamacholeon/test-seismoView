@@ -23,6 +23,7 @@ import { type MapHandle } from '../map-handle';
 import { EarthquakesPageActions } from '@features/earthquakes/data-access/state/earthquakes.actions';
 import {
   selectFilteredEarthquakes,
+  selectHoveredId,
   selectSelection,
 } from '@features/earthquakes/data-access/state/earthquakes.selectors';
 
@@ -30,6 +31,12 @@ import {
  * Renders the loaded, filtered earthquakes as a MapLibre point layer.
  * Selection and hover are pure feature-state changes (no re-fetching, no
  * setData), so they stay smooth even with hundreds of points on screen.
+ *
+ * Hover and selection are both driven by the store, not by local component
+ * state: a mouse move here only dispatches an action, the same as a hover
+ * on a list card does. A single effect then mirrors whatever the store
+ * says onto feature-state, regardless of which side triggered it. That is
+ * what makes the highlight work in both directions.
  */
 @Component({
   imports: [],
@@ -46,11 +53,12 @@ export class EarthquakeMap {
   private readonly container = viewChild.required<ElementRef<HTMLElement>>('container');
   private readonly earthquakes = this.store.selectSignal(selectFilteredEarthquakes);
   private readonly selection = this.store.selectSignal(selectSelection);
+  private readonly hoveredId = this.store.selectSignal(selectHoveredId);
 
   private map: MapHandle | null = null;
   private readonly mapReady = signal(false);
-  private hoveredId: string | null = null;
   private selectedId: string | null = null;
+  private hoveredFeatureId: string | null = null;
 
   constructor() {
     afterNextRender(() => {
@@ -61,6 +69,9 @@ export class EarthquakeMap {
     });
     effect(() => {
       this.syncSelection();
+    });
+    effect(() => {
+      this.syncHover();
     });
     this.destroyRef.onDestroy(() => {
       this.map?.remove();
@@ -110,28 +121,6 @@ export class EarthquakeMap {
     // just hasn't loaded yet".
     map.on('error', (event) => {
       console.error('MapLibre error', event.error);
-    });
-
-    // TEMPORARY diagnostic logging, to see exactly how far map init gets.
-    const container = this.container().nativeElement;
-    console.warn('[map-debug] container size at creation', {
-      width: container.clientWidth,
-      height: container.clientHeight,
-    });
-    const debugOn = map as unknown as {
-      on(event: string, handler: (event?: unknown) => void): void;
-    };
-    debugOn.on('styledata', () => {
-      console.warn('[map-debug] styledata');
-    });
-    debugOn.on('sourcedata', (event) => {
-      console.warn('[map-debug] sourcedata', event);
-    });
-    debugOn.on('idle', () => {
-      console.warn('[map-debug] idle');
-    });
-    debugOn.on('render', () => {
-      console.warn('[map-debug] render');
     });
 
     this.map = map;
@@ -207,6 +196,30 @@ export class EarthquakeMap {
     }
   }
 
+  /**
+   * Mirrors the store's hovered id onto feature-state. Whether the hover
+   * started on a map point or a list card, this is the only place that
+   * ever calls setFeatureState for it, so both directions stay consistent.
+   */
+  private syncHover(): void {
+    const hoveredId = this.hoveredId();
+    if (!this.mapReady() || !this.map) {
+      return;
+    }
+
+    if (this.hoveredFeatureId !== null && this.hoveredFeatureId !== hoveredId) {
+      this.map.setFeatureState(
+        { source: EARTHQUAKES_SOURCE_ID, id: this.hoveredFeatureId },
+        { hovered: false },
+      );
+    }
+
+    this.hoveredFeatureId = hoveredId;
+    if (hoveredId !== null) {
+      this.map.setFeatureState({ source: EARTHQUAKES_SOURCE_ID, id: hoveredId }, { hovered: true });
+    }
+  }
+
   private onClick(event: { features?: readonly { properties: Record<string, unknown> }[] }): void {
     const id = event.features?.[0]?.properties['id'];
     if (typeof id === 'string') {
@@ -218,28 +231,14 @@ export class EarthquakeMap {
     features?: readonly { properties: Record<string, unknown> }[];
   }): void {
     const id = event.features?.[0]?.properties['id'];
-    if (typeof id !== 'string' || id === this.hoveredId) {
+    if (typeof id !== 'string' || id === this.hoveredId()) {
       return;
     }
 
-    this.clearHover();
-    this.hoveredId = id;
-    this.map?.setFeatureState({ source: EARTHQUAKES_SOURCE_ID, id }, { hovered: true });
     this.store.dispatch(EarthquakesPageActions.earthquakeHovered({ id }));
   }
 
   private onMouseLeave(): void {
-    this.clearHover();
     this.store.dispatch(EarthquakesPageActions.earthquakeHovered({ id: null }));
-  }
-
-  private clearHover(): void {
-    if (this.hoveredId !== null) {
-      this.map?.setFeatureState(
-        { source: EARTHQUAKES_SOURCE_ID, id: this.hoveredId },
-        { hovered: false },
-      );
-      this.hoveredId = null;
-    }
   }
 }
