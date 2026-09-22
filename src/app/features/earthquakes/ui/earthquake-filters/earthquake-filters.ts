@@ -1,6 +1,12 @@
 import { Component, computed, inject } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule, type MatDatepickerInputEvent } from '@angular/material/datepicker';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSliderModule } from '@angular/material/slider';
 import { Store } from '@ngrx/store';
 
+import { type EarthquakeFilters as EarthquakeFiltersModel } from '@features/earthquakes/data-access/models/earthquake-filters.model';
 import { EarthquakesPageActions } from '@features/earthquakes/data-access/state/earthquakes.actions';
 import {
   selectFilters,
@@ -8,11 +14,9 @@ import {
   selectTimeBounds,
 } from '@features/earthquakes/data-access/state/earthquakes.selectors';
 import {
-  dateInputToEndOfDay,
-  dateInputToStartOfDay,
-  epochToDateInput,
-} from '@features/earthquakes/data-access/utils/date-input';
-import { type EarthquakeFilters as EarthquakeFiltersModel } from '@features/earthquakes/data-access/models/earthquake-filters.model';
+  endOfLocalDay,
+  startOfLocalDay,
+} from '@features/earthquakes/data-access/utils/day-boundary';
 
 /**
  * Connects directly to the store, the same way EarthquakeList does: filters
@@ -21,6 +25,13 @@ import { type EarthquakeFilters as EarthquakeFiltersModel } from '@features/eart
  */
 @Component({
   selector: 'sv-earthquake-filters',
+  imports: [
+    MatButtonModule,
+    MatDatepickerModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSliderModule,
+  ],
   templateUrl: './earthquake-filters.html',
   styleUrl: './earthquake-filters.scss',
 })
@@ -41,35 +52,41 @@ export class EarthquakeFilters {
     );
   });
 
-  protected readonly epochToDateInput = epochToDateInput;
-
-  protected readonly fromDateInput = computed(() => {
+  protected readonly fromDate = computed(() => {
     const from = this.filters().from;
-    return from === null ? '' : epochToDateInput(from);
+    return from === null ? null : new Date(from);
   });
 
-  protected readonly toDateInput = computed(() => {
+  protected readonly toDate = computed(() => {
     const to = this.filters().to;
-    return to === null ? '' : epochToDateInput(to);
+    return to === null ? null : new Date(to);
   });
 
-  protected onMinMagnitudeChange(value: string): void {
-    const minMagnitude = value === '' ? null : Number(value);
+  protected readonly minPickableDate = computed(() => {
+    const bounds = this.timeBounds();
+    return bounds === null ? null : new Date(bounds.min);
+  });
+
+  protected readonly maxPickableDate = computed(() => {
+    const bounds = this.timeBounds();
+    return bounds === null ? null : new Date(bounds.max);
+  });
+
+  protected onMinMagnitudeChange(minMagnitude: number): void {
     this.dispatchFilters({ ...this.filters(), minMagnitude });
   }
 
-  protected onMaxMagnitudeChange(value: string): void {
-    const maxMagnitude = value === '' ? null : Number(value);
+  protected onMaxMagnitudeChange(maxMagnitude: number): void {
     this.dispatchFilters({ ...this.filters(), maxMagnitude });
   }
 
-  protected onFromDateChange(value: string): void {
-    const from = value === '' ? null : dateInputToStartOfDay(value);
+  protected onFromDateChange(event: MatDatepickerInputEvent<Date>): void {
+    const from = event.value === null ? null : startOfLocalDay(event.value);
     this.dispatchFilters({ ...this.filters(), from });
   }
 
-  protected onToDateChange(value: string): void {
-    const to = value === '' ? null : dateInputToEndOfDay(value);
+  protected onToDateChange(event: MatDatepickerInputEvent<Date>): void {
+    const to = event.value === null ? null : endOfLocalDay(event.value);
     this.dispatchFilters({ ...this.filters(), to });
   }
 

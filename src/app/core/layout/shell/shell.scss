@@ -9,18 +9,29 @@
     position: relative;
     z-index: var(--sv-z-header);
     flex: none;
-    box-shadow: var(--mat-sys-level1);
+
+    mat-toolbar {
+      background: var(--mat-sys-primary);
+      color: var(--mat-sys-on-primary);
+    }
   }
 
   &__brand {
+    display: flex;
+    align-items: center;
     margin: 0;
-    font: var(--mat-sys-title-large);
-    font-weight: 600;
+  }
+
+  &__logo {
+    block-size: 1.5rem;
+    inline-size: auto;
   }
 
   &__tagline {
     margin-inline-start: var(--sv-space-3);
-    color: var(--mat-sys-on-surface-variant);
+    padding-inline-start: var(--sv-space-3);
+    border-inline-start: 1px solid rgb(255 255 255 / 30%);
+    color: rgb(255 255 255 / 80%);
     font: var(--mat-sys-body-medium);
 
     @media (max-width: 36rem) {

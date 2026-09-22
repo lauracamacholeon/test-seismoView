@@ -9,13 +9,16 @@ export const EARTHQUAKES_SOURCE_ID = 'earthquakes';
 /** Id of the circle layer that renders each earthquake as a point. */
 export const EARTHQUAKES_LAYER_ID = 'earthquakes-circles';
 
+/** The app's brand color, used here to make the hover state unmistakable. */
+const BRAND_COLOR = '#0161A2';
+
 /**
  * Radius grows with magnitude on a fixed scale, so a M7 reads clearly
  * bigger than a M4.5 without magnitude-independent circles all looking the
  * same size. `interpolate`/`linear` runs on the GPU: no JS recomputation
  * when the map is filtered or panned.
  */
-const CIRCLE_RADIUS: DataDrivenPropertyValueSpecification<number> = [
+const BASE_CIRCLE_RADIUS: DataDrivenPropertyValueSpecification<number> = [
   'interpolate',
   ['linear'],
   ['get', 'magnitude'],
@@ -27,6 +30,19 @@ const CIRCLE_RADIUS: DataDrivenPropertyValueSpecification<number> = [
   16,
   9,
   26,
+];
+
+/**
+ * The hovered point also grows by a third, on top of its magnitude-based
+ * size: a color and stroke change alone can be subtle on small, tightly
+ * packed points, so the size change makes it unambiguous which one is
+ * under the cursor even at a glance.
+ */
+const CIRCLE_RADIUS: DataDrivenPropertyValueSpecification<number> = [
+  'case',
+  ['boolean', ['feature-state', 'hovered'], false],
+  ['*', BASE_CIRCLE_RADIUS, 1.35],
+  BASE_CIRCLE_RADIUS,
 ];
 
 /**
@@ -51,9 +67,9 @@ const CIRCLE_COLOR: DataDrivenPropertyValueSpecification<string> = [
 /**
  * The hover and selected states are set via setFeatureState (feature-state
  * expressions), not by rewriting properties, so a hover never triggers a
- * setData call. Selected earthquakes get a visible white ring; hovered ones
- * get a thin highlight so the cursor's target is unambiguous even for
- * small, tightly packed points.
+ * setData call. Selected earthquakes get a white ring; hovered ones get a
+ * thick ring in the brand color plus the size bump above, so the hover
+ * state is unmistakable even against the busiest cluster of points.
  */
 export const earthquakesCircleLayer: CircleLayerSpecification = {
   id: EARTHQUAKES_LAYER_ID,
@@ -68,13 +84,15 @@ export const earthquakesCircleLayer: CircleLayerSpecification = {
       ['boolean', ['feature-state', 'selected'], false],
       3,
       ['boolean', ['feature-state', 'hovered'], false],
-      2,
+      4,
       1,
     ],
     'circle-stroke-color': [
       'case',
       ['boolean', ['feature-state', 'selected'], false],
       '#FFFFFF',
+      ['boolean', ['feature-state', 'hovered'], false],
+      BRAND_COLOR,
       '#2C2C2A',
     ],
   },

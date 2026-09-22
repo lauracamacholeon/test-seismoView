@@ -17,10 +17,11 @@ describe('Shell', () => {
     host = fixture.nativeElement as HTMLElement;
   });
 
-  it('should render the application title as the page heading', () => {
+  it('should render the Realtix logo as the page heading', () => {
     const heading = host.querySelector('h1');
+    const logo = heading?.querySelector('img');
 
-    expect(heading?.textContent).toContain('SeismoView');
+    expect(logo?.getAttribute('alt')).toBe('Realtix');
   });
 
   it('should describe the dataset in the tagline', () => {
