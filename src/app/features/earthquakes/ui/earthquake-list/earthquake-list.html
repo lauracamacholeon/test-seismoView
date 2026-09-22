@@ -1,0 +1,28 @@
+<div #container class="list">
+  @switch (status()) {
+    @case ('loading') {
+      <p class="list__placeholder">Loading earthquakes…</p>
+    }
+    @case ('error') {
+      <p class="list__placeholder list__placeholder--error">{{ error() }}</p>
+    }
+    @default {
+      @if (earthquakes().length === 0) {
+        <p class="list__placeholder">No earthquakes match the current filters.</p>
+      } @else {
+        <p class="list__count">{{ earthquakes().length }} earthquakes</p>
+        @for (earthquake of earthquakes(); track earthquake.id) {
+          <div [id]="'earthquake-' + earthquake.id" class="list__item">
+            <sv-earthquake-card
+              [earthquake]="earthquake"
+              [selected]="selection()?.id === earthquake.id"
+              [class.list__item--hovered]="hoveredId() === earthquake.id"
+              (selectEarthquake)="onSelect($event)"
+              (hoverEarthquake)="onHover($event)"
+            />
+          </div>
+        }
+      }
+    }
+  }
+</div>

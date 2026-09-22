@@ -1,15 +1,5 @@
 <aside class="viewer__sidebar" aria-label="Earthquake filters and list">
-  @switch (status()) {
-    @case ('loading') {
-      <p class="viewer__placeholder">Loading earthquakes…</p>
-    }
-    @case ('error') {
-      <p class="viewer__placeholder">{{ error() }}</p>
-    }
-    @default {
-      <p class="viewer__placeholder">{{ total() }} earthquakes loaded</p>
-    }
-  }
+  <sv-earthquake-list />
 </aside>
 
 <section class="viewer__map" aria-label="Earthquake map">

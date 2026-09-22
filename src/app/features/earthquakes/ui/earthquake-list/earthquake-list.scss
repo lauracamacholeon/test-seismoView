@@ -1,0 +1,30 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sv-space-1);
+  height: 100%;
+  overflow-y: auto;
+
+  &__count {
+    margin: 0 0 var(--sv-space-2);
+    padding: 0 var(--sv-space-1);
+    color: var(--mat-sys-on-surface-variant);
+    font: var(--mat-sys-label-large);
+  }
+
+  &__placeholder {
+    margin: 0;
+    padding: var(--sv-space-2);
+    color: var(--mat-sys-on-surface-variant);
+
+    &--error {
+      color: var(--mat-sys-error);
+    }
+  }
+
+  &__item--hovered sv-earthquake-card {
+    outline: 2px solid var(--mat-sys-secondary);
+    outline-offset: -2px;
+    border-radius: var(--sv-radius-md);
+  }
+}

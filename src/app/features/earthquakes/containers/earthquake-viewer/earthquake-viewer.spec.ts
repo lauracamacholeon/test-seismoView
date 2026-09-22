@@ -6,6 +6,7 @@ import { EarthquakesPageActions } from '@features/earthquakes/data-access/state/
 import {
   selectError,
   selectFilteredEarthquakes,
+  selectHoveredId,
   selectSelection,
   selectStatus,
   selectTotalCount,
@@ -40,6 +41,7 @@ describe('EarthquakeViewer', () => {
             { selector: selectTotalCount, value: 0 },
             { selector: selectFilteredEarthquakes, value: [] },
             { selector: selectSelection, value: null },
+            { selector: selectHoveredId, value: null },
           ],
         }),
       ],
@@ -51,6 +53,12 @@ describe('EarthquakeViewer', () => {
     const sidebar = render().querySelector('aside');
 
     expect(sidebar?.getAttribute('aria-label')).toBe('Earthquake filters and list');
+  });
+
+  it('should render the earthquake list inside the sidebar', () => {
+    const sidebar = render().querySelector('aside');
+
+    expect(sidebar?.querySelector('sv-earthquake-list')).not.toBeNull();
   });
 
   it('should render a labelled region for the map', () => {
@@ -71,26 +79,5 @@ describe('EarthquakeViewer', () => {
     render();
 
     expect(dispatch).toHaveBeenCalledWith(EarthquakesPageActions.opened());
-  });
-
-  it('should tell the user that the earthquakes are loading', () => {
-    store.overrideSelector(selectStatus, 'loading');
-
-    expect(render().querySelector('aside')?.textContent).toContain('Loading earthquakes');
-  });
-
-  it('should show the error message when the load fails', () => {
-    store.overrideSelector(selectStatus, 'error');
-    store.overrideSelector(selectError, 'The service is temporarily unavailable.');
-
-    expect(render().querySelector('aside')?.textContent).toContain(
-      'The service is temporarily unavailable.',
-    );
-  });
-
-  it('should show how many earthquakes were loaded', () => {
-    store.overrideSelector(selectTotalCount, 42);
-
-    expect(render().querySelector('aside')?.textContent).toContain('42 earthquakes loaded');
   });
 });
