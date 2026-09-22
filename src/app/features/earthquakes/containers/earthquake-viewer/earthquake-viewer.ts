@@ -2,12 +2,13 @@ import { Component, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 
 import { EarthquakesPageActions } from '@features/earthquakes/data-access/state/earthquakes.actions';
+import { EarthquakeFilters } from '@features/earthquakes/ui/earthquake-filters/earthquake-filters';
 import { EarthquakeList } from '@features/earthquakes/ui/earthquake-list/earthquake-list';
 import { EarthquakeMap } from '@features/earthquakes/map/earthquake-map/earthquake-map';
 
 @Component({
   selector: 'sv-earthquake-viewer',
-  imports: [EarthquakeList, EarthquakeMap],
+  imports: [EarthquakeFilters, EarthquakeList, EarthquakeMap],
   templateUrl: './earthquake-viewer.html',
   styleUrl: './earthquake-viewer.scss',
 })

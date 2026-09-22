@@ -3,12 +3,16 @@ import { Store } from '@ngrx/store';
 import { type MockStore, provideMockStore } from '@ngrx/store/testing';
 
 import { EarthquakesPageActions } from '@features/earthquakes/data-access/state/earthquakes.actions';
+import { NO_FILTERS } from '@features/earthquakes/data-access/models/earthquake-filters.model';
 import {
   selectError,
   selectFilteredEarthquakes,
+  selectFilters,
   selectHoveredId,
+  selectMagnitudeBounds,
   selectSelection,
   selectStatus,
+  selectTimeBounds,
   selectTotalCount,
 } from '@features/earthquakes/data-access/state/earthquakes.selectors';
 import { MAP_FACTORY } from '@features/earthquakes/map/map-adapter.token';
@@ -42,6 +46,9 @@ describe('EarthquakeViewer', () => {
             { selector: selectFilteredEarthquakes, value: [] },
             { selector: selectSelection, value: null },
             { selector: selectHoveredId, value: null },
+            { selector: selectFilters, value: NO_FILTERS },
+            { selector: selectMagnitudeBounds, value: null },
+            { selector: selectTimeBounds, value: null },
           ],
         }),
       ],

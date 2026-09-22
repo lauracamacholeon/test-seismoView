@@ -1,0 +1,63 @@
+@if (magnitudeBounds(); as bounds) {
+  <section class="filters" aria-label="Filters">
+    <div class="filters__row">
+      <label class="filters__label" for="min-magnitude">
+        Min magnitude
+        <span class="filters__value">{{ filters().minMagnitude ?? bounds.min }}</span>
+      </label>
+      <input
+        id="min-magnitude"
+        type="range"
+        [attr.min]="bounds.min"
+        [attr.max]="bounds.max"
+        step="0.1"
+        [value]="filters().minMagnitude ?? bounds.min"
+        (input)="onMinMagnitudeChange($any($event.target).value)"
+      />
+    </div>
+
+    <div class="filters__row">
+      <label class="filters__label" for="max-magnitude">
+        Max magnitude
+        <span class="filters__value">{{ filters().maxMagnitude ?? bounds.max }}</span>
+      </label>
+      <input
+        id="max-magnitude"
+        type="range"
+        [attr.min]="bounds.min"
+        [attr.max]="bounds.max"
+        step="0.1"
+        [value]="filters().maxMagnitude ?? bounds.max"
+        (input)="onMaxMagnitudeChange($any($event.target).value)"
+      />
+    </div>
+
+    @if (timeBounds(); as timeBounds) {
+      <div class="filters__row filters__row--dates">
+        <label class="filters__label" for="from-date">From</label>
+        <input
+          id="from-date"
+          type="date"
+          [attr.min]="epochToDateInput(timeBounds.min)"
+          [attr.max]="epochToDateInput(timeBounds.max)"
+          [value]="fromDateInput()"
+          (change)="onFromDateChange($any($event.target).value)"
+        />
+
+        <label class="filters__label" for="to-date">To</label>
+        <input
+          id="to-date"
+          type="date"
+          [attr.min]="epochToDateInput(timeBounds.min)"
+          [attr.max]="epochToDateInput(timeBounds.max)"
+          [value]="toDateInput()"
+          (change)="onToDateChange($any($event.target).value)"
+        />
+      </div>
+    }
+
+    @if (isFiltered()) {
+      <button type="button" class="filters__reset" (click)="onReset()">Reset filters</button>
+    }
+  </section>
+}
